@@ -1,0 +1,109 @@
+.data
+str_bit: .asciiz "bit-paridade: "
+str_output: .asciiz "saida: "
+str_error: .asciiz "entrada incorreta"
+break_line: .asciiz "\n"
+
+.text
+main:
+# Read a integer from input and save on $s0
+li $v0, 5
+syscall
+move $s0, $v0
+
+li $t0, 128
+li $t2, 127
+
+bgez $s0, L1
+j ERROR
+
+L1:
+    # if $t0 < $s0, $t1 = 1
+    slt $t1, $t2, $s0
+    # if $t1 > 0, go to ERROR label
+    bgtz $t1, ERROR
+
+    # $t2(accumulator) = 0
+    li $t2, 0
+    # $t5 = 1
+    li $t5, 1
+    # $t3 = $s0, justo to preserve $s0
+    move $t3, $s0
+
+L2:
+    # if $t3 == 0, go to end
+    beq $t3, $zero, SET_BIT
+    # Get the most significant bit of $t3
+    # if $t3 < 0, $t4 = 1
+    slt $t4, $t3, $zero
+    sll $t3, $t3, 1
+    #if $t4 > 0, go to INCREMENT
+    bgtz $t4, INCREMENT
+    j L2
+
+INCREMENT:
+    addi $t2, $t2, 1
+    j L2
+
+ERROR:
+    # Read the string str_add ("entrada incorreta")
+    li  $v0, 4
+    la  $a0, str_error
+    syscall
+
+    # Print a breakline
+    li  $v0, 4
+    la  $a0, break_line
+    syscall
+    
+    # Finish program
+    li $v0, 10
+    syscall
+
+SET_BIT:
+    # $t6 = $t2 and $t5(1)
+    and $t6, $t2, $t5
+
+    # if $t6 == 0, go to END
+    beq $t6, $zero, END
+    # go to CASE1
+    j CASE1
+
+CASE1:
+    # $s0 = $s0 + 128(10000000), add the bit 1
+    add $s0, $s0, $t0
+
+END:
+    # Read the string str_bit ("bit-paridade: ")
+    li  $v0, 4
+    la  $a0, str_bit
+    syscall
+
+    # Print the pairing bit
+    li  $v0, 1
+    move $a0, $t6
+    syscall
+
+    # Print a breakline
+    li  $v0, 4
+    la  $a0, break_line
+    syscall
+
+    # Read the string str_output ("saida: ")
+    li  $v0, 4
+    la  $a0, str_output
+    syscall
+
+    # Print the result
+    li  $v0, 1
+    move $a0, $s0
+    syscall
+
+    # Print a breakline
+    li  $v0, 4
+    la  $a0, break_line
+    syscall
+    
+    # Finish program
+    li $v0, 10
+    syscall
